@@ -1,0 +1,3 @@
+[submodule "pckgs/crpt"]
+	path = pckgs/crpt
+	url = git@github.com:iam8617477/crpt.git
