@@ -61,6 +61,21 @@ def display_access_list():
             print(f"{item:<5}{login:<20}{description:<30}")
 
 
+def get_passphrase():
+    passphrase = getpass.getpass("Enter passphrase: ").strip()
+    confirm_passphrase = getpass.getpass("Confirm passphrase: ").strip()
+
+    if not passphrase:
+        print("Passphrase is required!")
+        return None
+
+    if passphrase != confirm_passphrase:
+        print("Passphrases do not match! Script will now exit.")
+        return None
+
+    return passphrase
+
+
 def main():
     parser = argparse.ArgumentParser(description='Add access to access_list.csv')
     parser.add_argument('--add-access', action='store_true', help='Add a new access entry')
@@ -82,10 +97,11 @@ def main():
 
         description = input("Enter description (optional): ").strip()
 
-        passphrase = getpass.getpass("Enter passphrase: ").strip()
-        if not passphrase:
-            print("Passphrase is required!")
-            return
+        passphrase = get_passphrase()
+        if passphrase:
+            print("Passphrase set successfully.")
+        else:
+            print("Failed to set passphrase.")
 
         add_access(passphrase, login, password, description)
         print("Access added successfully.")
