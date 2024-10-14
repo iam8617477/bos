@@ -114,6 +114,11 @@ def main():
         display_access_list()
 
     if args.access:
+        if args.cache:
+            print("The password will be saved in cache.")
+        else:
+            print("ATTENTION. The password will be output to stdout!")
+
         item = input("Enter item: ").strip()
         if not item:
             print("Item is required!")
