@@ -2,6 +2,9 @@ import csv
 import os
 import argparse
 import getpass
+import time
+
+import pyperclip
 
 from pckgs.crpt.sync_encryptor import SyncEncryptor
 
@@ -30,22 +33,19 @@ def add_access(passphrase, login, password, description=None):
         writer = csv.writer(file)
         writer.writerow([item_number, login, encrypted_password, description if description else '', salt])
 
+    del encryptor
 
-def show_access_entry(item_number, passphrase):
+
+def get_access_entry(item_number):
     with open(FILE_NAME_ACCESS_LIST, mode='r') as file:
         reader = csv.reader(file)
         next(reader)
         for row in reader:
             if row[0] == item_number:
-                encryptor = SyncEncryptor(passphrase)
-                print(f"Item: {row[0]}")
-                print(f"Login: {row[1]}")
-                print(f"Password: {encryptor.decrypt(row[2], row[4])}")
-                print(f"Description: {row[3] if row[3] else 'No description'}")
-                print(f"Salt: {row[4]}")
-                break
+                return row
         else:
             print(f"No entry found for item: {item_number}")
+            exit()
 
 
 def display_access_list():
@@ -81,6 +81,7 @@ def main():
     parser.add_argument('--add-access', action='store_true', help='Add a new access entry')
     parser.add_argument('--access-list', action='store_true', help='Show list of logins and descriptions')
     parser.add_argument('--access', action='store_true', help='Show full access entry by item number')
+    parser.add_argument('--cache', type=int, help='Store password in cache (seconds)', required=False)
 
     args = parser.parse_args()
 
@@ -106,6 +107,9 @@ def main():
         add_access(passphrase, login, password, description)
         print("Access added successfully.")
 
+        del passphrase
+
+
     if args.access_list:
         display_access_list()
 
@@ -114,12 +118,30 @@ def main():
         if not item:
             print("Item is required!")
             return
+
+        row = get_access_entry(item)
         passphrase = getpass.getpass("Enter passphrase: ").strip()
         if not passphrase:
             print("Passphrase is required!")
             return
 
-        show_access_entry(item, passphrase)
+        encryptor = SyncEncryptor(passphrase)
+
+        if args.cache:
+            print(f"Secret copied to clipboard for {args.cache} seconds.")
+            pyperclip.copy(encryptor.decrypt(row[2], row[4]))
+            time.sleep(args.cache)
+            pyperclip.copy('')
+            print("The clipboard has been cleared.")
+        else:
+            print(f"Item: {row[0]}")
+            print(f"Login: {row[1]}")
+            print(f"Password: {encryptor.decrypt(row[2], row[4])}")
+            print(f"Description: {row[3] if row[3] else 'No description'}")
+            print(f"Salt: {row[4]}")
+
+        del passphrase
+        del encryptor
 
 
 if __name__ == "__main__":
