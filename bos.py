@@ -52,13 +52,13 @@ def display_access_list():
     with open(FILE_NAME_ACCESS_LIST, mode='r') as file:
         reader = csv.reader(file)
         next(reader)
-        print(f"{'Item':<5}{'Login':<20}{'Description':<30}")
-        print("-" * 60)
+        print(f"{'Item':<5}{'Login':<50}{'Description':<30}")
+        print("-" * 120)
         for row in reader:
             item = row[0]
             login = row[1]
             description = row[3] if row[3] else "No description"
-            print(f"{item:<5}{login:<20}{description:<30}")
+            print(f"{item:<5}{login:<50}{description:<30}")
 
 
 def get_passphrase():
