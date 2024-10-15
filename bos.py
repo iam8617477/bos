@@ -2,11 +2,14 @@ import csv
 import os
 import argparse
 import getpass
+import sys
 import time
 
 import pyperclip
 
-from pckgs.crpt.sync_encryptor import SyncEncryptor
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from crpt.sync_encryptor import SyncEncryptor
 
 FILE_NAME_ACCESS_LIST = 'access_list.csv'
 
