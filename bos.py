@@ -94,8 +94,16 @@ def main():
             print("Login is required!")
             return
 
-        password = input("Enter secret: ").strip()
-        if not password:
+        print("Enter secret (press Enter twice to finish):")
+        password_lines = []
+        while True:
+            line = input().strip()
+            if not line:
+                break
+            password_lines.append(line)
+
+        password = "\n".join(password_lines)
+        if not password.strip():
             print("Secret is required!")
             return
 
