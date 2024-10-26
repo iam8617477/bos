@@ -1,4 +1,6 @@
+import base64
 import csv
+import json
 import os
 import argparse
 import getpass
@@ -79,12 +81,56 @@ def get_passphrase():
     return passphrase
 
 
+def load_file(file_path, mode='r'):
+    with open(file_path, mode) as file:
+        return file.read()
+
+
+def save_encrypted_data(file_path, content, description, encryptor):
+    encrypted_content, salt = encryptor.encrypt(content, is_bytes=True)
+
+    encrypted_content_base64 = base64.b64encode(encrypted_content).decode('utf-8')
+    data = {
+        "timestamp": int(time.time()),
+        "filename": os.path.basename(file_path),
+        "path": os.path.dirname(file_path),
+        "encrypted_content": encrypted_content_base64,
+        "description": description,
+    }
+
+    with open(file_path, 'w') as json_file:
+        json.dump(data, json_file)
+
+    output_path = f"{file_path}.bosencrypted"
+    os.rename(file_path, output_path)
+
+    print(f"Data encrypted and saved to: {output_path}. Original file {file_path}.")
+
+
+def read_encrypted_data(file_path, encryptor):
+    with open(file_path, 'r') as json_file:
+        data = json.load(json_file)
+
+    encrypted_content = base64.b64decode(data["encrypted_content"])
+    decrypted_content = encryptor.decrypt(encrypted_content, is_bytes=True)
+
+    with open(file_path, 'wb') as file:
+        file.write(decrypted_content)
+
+    original_file_path = file_path[:-len('.bosencrypted')]
+    os.rename(file_path, original_file_path)
+
+    print(f"Data decrypted and saved back to: {original_file_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(description='Add access to access_list.csv')
     parser.add_argument('--add-access', action='store_true', help='Add a new access entry')
     parser.add_argument('--access-list', action='store_true', help='Show list of logins and descriptions')
     parser.add_argument('--access', action='store_true', help='Show full access entry by item number')
     parser.add_argument('--cache', type=int, help='Store password in cache (seconds)', required=False)
+    parser.add_argument('--encrypt-file', type=str, help="Path to the specific file to encrypt.")
+    parser.add_argument('--decrypt-file', type=str, help="Path to the specific file to decrypt.")
 
     args = parser.parse_args()
 
@@ -158,6 +204,24 @@ def main():
 
         del passphrase
         del encryptor
+
+    if args.encrypt_file:
+        content = load_file(args.encrypt_file, mode='rb')
+        passphrase = getpass.getpass("Enter passphrase: ").strip()
+        if not passphrase:
+            print("Passphrase is required!")
+            return
+        encryptor = SyncEncryptor(passphrase)
+        description = input("Enter description (optional): ").strip()
+        save_encrypted_data(args.encrypt_file, content, description, encryptor)
+
+    if args.decrypt_file:
+        passphrase = getpass.getpass("Enter passphrase: ").strip()
+        if not passphrase:
+            print("Passphrase is required!")
+            return
+        encryptor = SyncEncryptor(passphrase)
+        read_encrypted_data(args.decrypt_file, encryptor)
 
 
 if __name__ == "__main__":
