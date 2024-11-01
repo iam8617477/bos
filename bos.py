@@ -207,10 +207,12 @@ def main():
 
     if args.encrypt_file:
         content = load_file(args.encrypt_file, mode='rb')
-        passphrase = getpass.getpass("Enter passphrase: ").strip()
-        if not passphrase:
-            print("Passphrase is required!")
-            return
+        passphrase = get_passphrase()
+        if passphrase:
+            print("Passphrase set successfully.")
+        else:
+            print("Failed to set passphrase.")
+
         encryptor = SyncEncryptor(passphrase)
         description = input("Enter description (optional): ").strip()
         save_encrypted_data(args.encrypt_file, content, description, encryptor)
