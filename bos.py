@@ -31,8 +31,8 @@ def get_next_item_number(csv_filename):
 
 def add_access(passphrase, login, password, description=None):
     item_number = get_next_item_number(FILE_NAME_ACCESS_LIST)
-    encryptor = SyncEncryptor(passphrase)
-    encrypted_password, salt = encryptor.encrypt(password, use_salt=True)
+    encryptor = SyncEncryptor()
+    encrypted_password, salt = encryptor.encrypt(password, passphrase, use_salt=True)
 
     with open(FILE_NAME_ACCESS_LIST, mode='a', newline='') as file:
         writer = csv.writer(file)
@@ -86,8 +86,8 @@ def load_file(file_path, mode='r'):
         return file.read()
 
 
-def save_encrypted_data(file_path, content, description, encryptor):
-    encrypted_content, salt = encryptor.encrypt(content, is_bytes=True)
+def save_encrypted_data(file_path, content, description, encryptor, passphrase):
+    encrypted_content, salt = encryptor.encrypt(content, passphrase, is_bytes=True)
 
     encrypted_content_base64 = base64.b64encode(encrypted_content).decode('utf-8')
     data = {
@@ -107,12 +107,12 @@ def save_encrypted_data(file_path, content, description, encryptor):
     print(f"Data encrypted and saved to: {output_path}. Original file {file_path}.")
 
 
-def read_encrypted_data(file_path, encryptor):
+def read_encrypted_data(file_path, encryptor, passphrase):
     with open(file_path, 'r') as json_file:
         data = json.load(json_file)
 
     encrypted_content = base64.b64decode(data["encrypted_content"])
-    decrypted_content = encryptor.decrypt(encrypted_content, is_bytes=True)
+    decrypted_content = encryptor.decrypt(encrypted_content, passphrase, is_bytes=True)
 
     with open(file_path, 'wb') as file:
         file.write(decrypted_content)
@@ -182,25 +182,27 @@ def main():
             return
 
         row = get_access_entry(item)
+        encrypted_data = row[2]
+        salt = row[4]
         passphrase = getpass.getpass("Enter passphrase: ").strip()
         if not passphrase:
             print("Passphrase is required!")
             return
 
-        encryptor = SyncEncryptor(passphrase)
+        encryptor = SyncEncryptor()
 
         if args.cache:
             print(f"Secret copied to clipboard for {args.cache} seconds.")
-            pyperclip.copy(encryptor.decrypt(row[2], row[4]))
+            pyperclip.copy(encryptor.decrypt(encrypted_data, passphrase, salt))
             time.sleep(args.cache)
             pyperclip.copy('')
             print("The clipboard has been cleared.")
         else:
             print(f"Item: {row[0]}")
             print(f"Login: {row[1]}")
-            print(f"Password: {encryptor.decrypt(row[2], row[4])}")
+            print(f"Password: {encryptor.decrypt(encrypted_data, passphrase, salt)}")
             print(f"Description: {row[3] if row[3] else 'No description'}")
-            print(f"Salt: {row[4]}")
+            print(f"Salt: {salt}")
 
         del passphrase
         del encryptor
@@ -213,17 +215,17 @@ def main():
         else:
             print("Failed to set passphrase.")
 
-        encryptor = SyncEncryptor(passphrase)
+        encryptor = SyncEncryptor()
         description = input("Enter description (optional): ").strip()
-        save_encrypted_data(args.encrypt_file, content, description, encryptor)
+        save_encrypted_data(args.encrypt_file, content, description, encryptor, passphrase)
 
     if args.decrypt_file:
         passphrase = getpass.getpass("Enter passphrase: ").strip()
         if not passphrase:
             print("Passphrase is required!")
             return
-        encryptor = SyncEncryptor(passphrase)
-        read_encrypted_data(args.decrypt_file, encryptor)
+        encryptor = SyncEncryptor()
+        read_encrypted_data(args.decrypt_file, encryptor, passphrase)
 
 
 if __name__ == "__main__":
